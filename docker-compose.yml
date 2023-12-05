@@ -1,0 +1,66 @@
+#version del docker compose
+version: '3.8'
+#Los servicios que estaran corriendo en el compose
+services:
+
+  #El primer servicio es el backend de php
+  backend:
+  #Ingresa las instrucciones del dockerfile creado php.dockerfile y al subir el compose le pone sus instrucciones y el nombre del contenedor
+    build: 
+      context: .
+      dockerfile: php.dockerfile
+    container_name: backend_svc
+    #Los puertos por el cual trabajara apache puerto 8080
+    ports:
+      - 8080:80
+    #El directorio donde se trabajara y sera copiado, para poder subir el index.html o php
+    volumes:
+      - ./www/:/var/www/html
+    #El contenedor dependera de
+    depends_on:
+      - database
+    networks:
+      app_network:
+        aliases:
+          - backend_host
+
+  #Segundo servcicio que es la base de datos, y se realizan las configuraciones
+  database:
+  #Ingresa las instrucciones del dockerfile creado mariadb.dockerfile y al subir el compose le pone sus instrucciones y el nombre del contenedor
+    build: 
+      context: .
+      dockerfile: mariadb.dockerfile
+    container_name: mariadb_svc
+    #Los puertos por el cual trabajara la base de datos
+    ports:
+      - 3306:3306
+    #Las variables de entorno, aqui se puede cambiar el nombre, y la contrasena de la base de datos
+    environment:
+      MYSQL_DATABASE: "custom_db"
+      MYSQL_ROOT_PASSWORD: "Custom.2023"
+    
+    volumes:
+    #Manda el directorio local a var/lib/mysql
+      - ./schemas/:/var/lib/mysql
+    #Manda el archivo schema.sql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    #ELa red por el cual se va a trabajar, colocando como nombre del host maria_db
+    networks:
+      app_network:
+        aliases:
+          - mariadb_host
+
+
+
+volumes:
+  www: {}
+  schemas: {}
+
+
+networks:
+  app_network:
+    name: app_net
+    driver: bridge
+    ipam:
+      driver: default
+
